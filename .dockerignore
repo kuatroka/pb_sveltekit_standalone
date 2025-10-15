@@ -1,0 +1,29 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# OpenSpec
+openspec/
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github/
