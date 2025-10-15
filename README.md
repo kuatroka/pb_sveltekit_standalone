@@ -43,12 +43,12 @@ This command will:
 ### 3. Access Applications
 
 - **Frontend**: http://localhost:5173
-- **PocketBase Admin**: http://localhost:8090/_/
-- **PocketBase API**: http://localhost:8090/api/
+- **PocketBase Admin**: http://localhost:8091/_/
+- **PocketBase API**: http://localhost:8091/api/
 
 ### 4. Initial PocketBase Setup
 
-1. Navigate to http://localhost:8090/_/
+1. Navigate to http://localhost:8091/_/
 2. Create admin account on first visit
 3. Create a "users" collection for authentication (or use the default one)
 4. Add test users via admin UI
@@ -198,13 +198,13 @@ Copy `.env.example` to `.env` and customize as needed:
 
 ```bash
 # PocketBase URL (accessible from browser)
-VITE_POCKETBASE_URL=http://localhost:8090
+VITE_POCKETBASE_URL=http://localhost:8091
 
 # PocketBase version (optional)
-PB_VERSION=0.22.0
+PB_VERSION=0.30.2
 
 # Ports (change if conflicts occur)
-POCKETBASE_PORT=8090
+POCKETBASE_PORT=8091
 FRONTEND_PORT=5173
 ```
 
