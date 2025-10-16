@@ -1,0 +1,49 @@
+# Production Dockerfile for PocketBase
+FROM golang:1.25-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache build-base
+
+WORKDIR /src
+
+# Copy go mod files first for better caching
+COPY app/go.mod app/go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY app/. .
+
+# Build the application
+RUN CGO_ENABLED=1 go build -ldflags="-w -s" -o /bin/pocketbaseapp .
+
+# Production stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata wget
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /bin/pocketbaseapp /app/pocketbaseapp
+
+# Create data directory
+RUN mkdir -p /pb_data
+
+# Create non-root user
+RUN addgroup -g 1000 pocketbase && \
+    adduser -D -s /bin/sh -u 1000 -G pocketbase pocketbase
+
+# Set ownership
+RUN chown -R pocketbase:pocketbase /app /pb_data
+
+# Switch to non-root user
+USER pocketbase
+
+EXPOSE 8091
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --timeout=3 --output-document=- http://localhost:8090/api/ > /dev/null || exit 1
+
+ENTRYPOINT ["/app/pocketbaseapp"]

@@ -111,6 +111,21 @@ docker compose exec frontend bun add -d <package-name>
 # The changes will be reflected in package.json on your host machine
 ```
 
+## Production
+
+To build and run the production-ready version of the application, use the `docker-compose.prod.yml` file. This will create optimized, static builds for both the frontend and backend.
+
+### 1. Build and Run
+
+```bash
+podman compose -f docker-compose.prod.yml up --build
+```
+
+### 2. Access the Application
+
+- **Frontend**: `http://localhost:8080`
+- **PocketBase Admin**: `http://localhost:8091/_/`
+
 ## Svelte 5 Runes
 
 This project uses Svelte 5's new runes for reactivity. See examples in the code:

@@ -1,0 +1,22 @@
+# Production Dockerfile for SvelteKit
+FROM oven/bun:1.3-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build the application for production
+RUN bun run build
+
+# Verify build output exists
+RUN ls -la /app/build/ && echo "Build successful"
+
+# Serve static files with Bun's built-in server
+WORKDIR /app/build
+EXPOSE 8080
+CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "8080"]
