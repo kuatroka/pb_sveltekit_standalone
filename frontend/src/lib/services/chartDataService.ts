@@ -57,7 +57,7 @@ export async function getChartSeries(): Promise<ChartSeries> {
 	try {
 		// Fetch all chart data records
 		const response = await pb.collection(COLLECTION).getList<ChartDataRecord>(1, 200, {
-			sort: 'created',
+			sort: 'quarter',
 			skipTotal: true
 		});
 
@@ -67,7 +67,7 @@ export async function getChartSeries(): Promise<ChartSeries> {
 			return { labels: [], values: [] };
 		}
 
-		// Sort by quarter chronologically
+		// Records are already sorted by quarter from the API, but we'll re-sort for consistency
 		const sorted = records.sort((a, b) => {
 			return quarterToSortKey(a.quarter) - quarterToSortKey(b.quarter);
 		});

@@ -8,7 +8,7 @@
 import pb from './pocketbase';
 
 const COLLECTION = 'counters';
-const COUNTER_ID = 'main';
+const COUNTER_ID = 'maincounterid00';
 const SETUP_HINT =
 	'PocketBase collections are missing. Run `docker compose down -v && docker compose up --build pocketbase` to reapply migrations.';
 

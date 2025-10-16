@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/daos"
+	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
-	"github.com/pocketbase/pocketbase/models"
-	"github.com/pocketbase/pocketbase/models/schema"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 const (
@@ -20,34 +18,26 @@ const (
 	endQuarter   = 4
 )
 
-func strPtr(v string) *string {
-	return &v
-}
-
 func init() {
-	m.Register(func(db dbx.Builder) error {
-		dao := daos.New(db)
-
-		if err := recreateValueQuartersCollection(dao); err != nil {
+	m.Register(func(app core.App) error {
+		if err := recreateValueQuartersCollection(app); err != nil {
 			return err
 		}
 
-		if err := recreateCountersCollection(dao); err != nil {
+		if err := recreateCountersCollection(app); err != nil {
 			return err
 		}
 
 		return nil
-	}, func(db dbx.Builder) error {
-		dao := daos.New(db)
-
-		if coll, err := dao.FindCollectionByNameOrId("value_quarters"); err == nil {
-			if err := dao.DeleteCollection(coll); err != nil {
+	}, func(app core.App) error {
+		if coll, err := app.FindCollectionByNameOrId("value_quarters"); err == nil {
+			if err := app.Delete(coll); err != nil {
 				return err
 			}
 		}
 
-		if coll, err := dao.FindCollectionByNameOrId("counters"); err == nil {
-			if err := dao.DeleteCollection(coll); err != nil {
+		if coll, err := app.FindCollectionByNameOrId("counters"); err == nil {
+			if err := app.Delete(coll); err != nil {
 				return err
 			}
 		}
@@ -56,41 +46,39 @@ func init() {
 	})
 }
 
-func recreateValueQuartersCollection(dao *daos.Dao) error {
-	if existing, err := dao.FindCollectionByNameOrId("value_quarters"); err == nil {
-		if err := dao.DeleteCollection(existing); err != nil {
+func recreateValueQuartersCollection(app core.App) error {
+	if existing, err := app.FindCollectionByNameOrId("value_quarters"); err == nil {
+		if err := app.Delete(existing); err != nil {
 			return err
 		}
 	}
 
-	collection := &models.Collection{
-		Name:       "value_quarters",
-		Type:       models.CollectionTypeBase,
-		ListRule:   strPtr(""),
-		ViewRule:   strPtr(""),
-		CreateRule: nil,
-		UpdateRule: nil,
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "quarter",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Options:  &schema.TextOptions{},
-			},
-			&schema.SchemaField{
-				Name:     "value",
-				Type:     schema.FieldTypeNumber,
-				Required: true,
-				Options:  &schema.NumberOptions{},
-			},
-		),
-		Indexes: []string{
-			"CREATE UNIQUE INDEX idx_value_quarters_quarter ON value_quarters (quarter)",
+	collection := core.NewBaseCollection("value_quarters")
+	collection.ListRule = types.Pointer("")   // Public read access
+	collection.ViewRule = types.Pointer("")   // Public read access
+	collection.CreateRule = nil               // No public creation
+	collection.UpdateRule = nil               // No public updates
+	collection.DeleteRule = nil               // No public deletion
+	
+	collection.Fields.Add(
+		&core.TextField{
+			Name:     "quarter",
+			Required: true,
 		},
+	)
+	
+	collection.Fields.Add(
+		&core.NumberField{
+			Name:     "value",
+			Required: true,
+		},
+	)
+	
+	collection.Indexes = types.JSONArray[string]{
+		"CREATE UNIQUE INDEX idx_value_quarters_quarter ON value_quarters (quarter)",
 	}
 
-	if err := dao.SaveCollection(collection); err != nil {
+	if err := app.Save(collection); err != nil {
 		return err
 	}
 
@@ -108,11 +96,11 @@ func recreateValueQuartersCollection(dao *daos.Dao) error {
 		}
 
 		for quarter := qStart; quarter <= qEnd; quarter++ {
-			record := models.NewRecord(collection)
+			record := core.NewRecord(collection)
 			record.Set("quarter", fmt.Sprintf("%dQ%d", year, quarter))
 			record.Set("value", rng.Float64()*(maxValue-minValue)+minValue)
 
-			if err := dao.SaveRecord(record); err != nil {
+			if err := app.Save(record); err != nil {
 				return err
 			}
 		}
@@ -121,40 +109,36 @@ func recreateValueQuartersCollection(dao *daos.Dao) error {
 	return nil
 }
 
-func recreateCountersCollection(dao *daos.Dao) error {
-	if existing, err := dao.FindCollectionByNameOrId("counters"); err == nil {
-		if err := dao.DeleteCollection(existing); err != nil {
+func recreateCountersCollection(app core.App) error {
+	if existing, err := app.FindCollectionByNameOrId("counters"); err == nil {
+		if err := app.Delete(existing); err != nil {
 			return err
 		}
 	}
 
-	collection := &models.Collection{
-		Name:       "counters",
-		Type:       models.CollectionTypeBase,
-		ListRule:   strPtr(""),
-		ViewRule:   strPtr(""),
-		CreateRule: nil,
-		UpdateRule: strPtr(""),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "value",
-				Type:     schema.FieldTypeNumber,
-				Required: false,
-				Options:  &schema.NumberOptions{},
-			},
-		),
-	}
+	collection := core.NewBaseCollection("counters")
+	collection.ListRule = types.Pointer("")   // Public read access
+	collection.ViewRule = types.Pointer("")   // Public read access
+	collection.CreateRule = types.Pointer("") // Public creation allowed
+	collection.UpdateRule = types.Pointer("") // Public update allowed
+	collection.DeleteRule = nil               // No public deletion
+	
+	collection.Fields.Add(
+		&core.NumberField{
+			Name:     "value",
+			Required: false,
+		},
+	)
 
-	if err := dao.SaveCollection(collection); err != nil {
+	if err := app.Save(collection); err != nil {
 		return err
 	}
 
-	record := models.NewRecord(collection)
-	record.SetId("main")
+	record := core.NewRecord(collection)
+	record.Set("id", "maincounterid00")
 	record.Set("value", 0)
 
-	if err := dao.SaveRecord(record); err != nil {
+	if err := app.Save(record); err != nil {
 		return err
 	}
 
